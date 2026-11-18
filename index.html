@@ -366,6 +366,37 @@ $("t1").oninput=function(){S.t1=Math.max(+this.value,S.t2+.05);syncSet();save()}
 $("t2").oninput=function(){S.t2=Math.min(+this.value,S.t1-.05);syncSet();save()};
 $("add").onclick=function(){var i=$("ni").value.trim()||"🙂",t=$("nt").value.trim();if(!t)return;if(!/[.!?]$/.test(t))t+=".";S.custom.push([i,t]);save();$("nt").value="";$("ni").value="";renderAac();$("add").textContent="Đã thêm";setTimeout(function(){$("add").textContent="Thêm vào chủ đề “Của tôi”"},1200)};
 $("reset").onclick=function(){try{localStorage.removeItem("hn_v1")}catch(e){}S.custom=[];S.use={};S.rate=1;S.t1=.8;S.t2=.5;S.quick=[];syncSet();renderAac();renderQuick();$("reset").textContent="Đã xóa"};
+
+/* Tìm ảnh ARASAAC tự động */
+async function searchArasaac(){
+  var tx = $("itx").value.trim();
+  if(!tx){ alert("Hãy nhập 'Câu sẽ được đọc' trước khi tìm ảnh. (Khuyên dùng tiếng Anh để tìm chính xác hơn)"); return; }
+  
+  // Lấy từ chính để tìm (ví dụ: "Tôi muốn đi ngủ" -> tìm "sleep")
+  var keyword = tx.toLowerCase().replace(/tôi|muốn|đi|làm|cần|có|không/g, '').trim().split(' ')[0] || tx;
+  
+  $("tmsg").textContent = "Đang tìm ảnh...";
+  try {
+    let res = await fetch(`https://api.arasaac.org/api/pictograms/en/search/${encodeURIComponent(keyword)}`);
+    if(!res.ok) throw new Error("Lỗi mạng");
+    let data = await res.json();
+    
+    if(data && data.length > 0) {
+      let picId = data[0]._id; 
+      let imageUrl = `https://static.arasaac.org/pictograms/${picId}/${picId}_300.png`;
+      pend = imageUrl;
+      $("ipv").src = pend;
+      $("ipv").hidden = false;
+      $("tmsg").textContent = "Đã tìm thấy ảnh!";
+    } else {
+      $("tmsg").textContent = "Không tìm thấy ảnh tự động. Hãy tự chọn ảnh hoặc dùng biểu tượng cảm xúc.";
+    }
+  } catch (error) {
+    console.error("Lỗi:", error);
+    $("tmsg").textContent = "Lỗi khi tìm ảnh tự động.";
+  }
+}
+
 /* gửi câu hỏi, chẩn đoán micro */
 $("q").setAttribute("lang","vi");$("q").setAttribute("enterkeyhint","send");
 $("send").onclick=function(){ask($("q").value)};
@@ -424,9 +455,9 @@ ed.innerHTML='<h2>Tạo chủ đề và thêm hình minh họa</h2>'+
  '<p class="mut" id="tmsg" aria-live="polite" style="margin:6px 0 0"></p>'+
  '<hr style="border:0;border-top:1px solid var(--line);margin:12px 0">'+
  '<label class="f">Thêm vào chủ đề<select id="tsel"></select></label>'+
- '<label class="f">Câu sẽ được đọc<input type="text" id="itx" maxlength="80" placeholder="Ví dụ: Tôi muốn đi học."></label>'+
- '<div class="row" style="flex-wrap:wrap"><img class="pv" id="ipv" alt="Xem trước hình" hidden><label class="btn ghost" style="cursor:pointer">📷 Chọn hoặc chụp hình<input type="file" id="ifile" accept="image/*" hidden></label><input type="text" id="iem" maxlength="2" placeholder="🙂" aria-label="Biểu tượng thay thế" style="flex:0 0 64px;text-align:center"></div>'+
- '<p class="mut" style="margin:6px 0">Nếu không chọn hình thì dùng biểu tượng cảm xúc ở ô bên cạnh.</p>'+
+ '<label class="f">Câu sẽ được đọc<input type="text" id="itx" maxlength="80" placeholder="Ví dụ: Tôi muốn đi học. (Tiếng Anh để tự động tìm ảnh tốt hơn)"></label>'+
+ '<div class="row" style="flex-wrap:wrap"><button class="btn" id="isearch" onclick="searchArasaac()" style="margin-bottom: 5px;">🔍 Tự động tìm ảnh</button><img class="pv" id="ipv" alt="Xem trước hình" hidden><label class="btn ghost" style="cursor:pointer; margin-bottom: 5px;">📷 Chọn hoặc chụp hình<input type="file" id="ifile" accept="image/*" hidden></label><input type="text" id="iem" maxlength="2" placeholder="🙂" aria-label="Biểu tượng thay thế" style="flex:0 0 64px;text-align:center"></div>'+
+ '<p class="mut" style="margin:6px 0">Bạn có thể dùng nút Tìm tự động, tải ảnh lên, hoặc dùng biểu tượng cảm xúc.</p>'+
  '<button class="btn" id="iadd">Thêm vào bảng</button> <span class="mut" id="imsg" aria-live="polite"></span>'+
  '<ul class="ul" id="ilist"></ul>';
 $("v-aac").appendChild(ed);
